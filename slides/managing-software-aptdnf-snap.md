@@ -3,28 +3,9 @@ marp: true
 theme: default
 paginate: true
 header: "Managing Software with APT, DNF, and Snap — Software management on modern Linux"
-footer: "Speakers: 22120368, 22120375, 2212041x"
+footer: "Speakers: 22120368, 22120375, 22120387"
 _class: lead
 backgroundImage: url('https://marp.app/assets/hero-background.svg')
----
-
-## Mục tiêu
-
-- Hiểu APT, DNF, Snap
-- Tìm kiếm / cài / xoá gói
-- Thêm repository (khái niệm)
-- So sánh APT vs DNF vs Snap
-- Demo: thực hiện trên 2 VM (Debian/Ubuntu + CentOS/RHEL/AlmaLinux) hoặc containers
-
----
-
-## Lab requirements
-
-- 1 Debian/Ubuntu VM or container (example: ubuntu:24.04)
-- 1 CentOS/RHEL/AlmaLinux VM or container (example: almalinux:9)
-- sudo access in each environment
-- Optional: an Ubuntu host/VM with snapd for Snap demos (snapd often requires systemd)
-
 ---
 
 # Managing Software with APT, DNF, and Snap
@@ -33,15 +14,15 @@ backgroundImage: url('https://marp.app/assets/hero-background.svg')
 
 Speakers:
 
-- 22120368
-- 22120375
-- 2212041x
+- 22120368 - Phan Thanh Tiến
+- 22120375 - Lưu Thái Toàn
+- 22120383 - Nguyễn Đăng Trí
 
 ---
 
 ## Objectives
 
-- Understand the role of package managers in modern distros
+- Understand the role of package managers
 - Search / install / remove packages
 - Add and inspect repositories (concept)
 - Compare APT, DNF, and Snap
@@ -51,11 +32,19 @@ Speakers:
 
 ## Background: Package managers
 
-- A tool for **discovery**, **install**, **upgrade**, and **removal** of system package (including apps and its libraries to run). (Not limited to Linux systems! e.g., Homebrew on macOS, Chocolatey on Windows)
+- A tool for **discovery**, **install**, **upgrade**, and **removal** of system package (including apps and its libraries to run). _(Not limited to Linux systems! e.g., Homebrew on macOS, Chocolatey on Windows)_
 - They perform dependency resolution, manage metadata and caches, and apply updates
   > Inspect dependencies using `apt`: `apt-cache depends vlc`
+  <!-- NOTE: Should mention dpkg/rpm -i -->
 - They integrate with the OS packaging format (.deb / .rpm) and can influence system state (services, configs)
 - Important for security (timely patches), reproducibility, and disk/resource sharing
+
+---
+
+- Types of package managers:
+  - Imperative: modify system state directly (e.g., `apt install pkg`)
+  - Declarative: define desired state, system converges to it (e.g., NixOS configuration)
+  - Application package manager: bundle app + dependencies, isolated from system (e.g., Snap, Flatpak)
 
 ---
 
@@ -68,12 +57,36 @@ Speakers:
 
 ---
 
-## How RPM and DEB packages run on the system — internals
+# Imperative package formats
+
+## `apt` and `dnf`
+
+---
+
+## Why DEB cannot run on RPM-based systems (and vice versa)?
 
 - Package archive layout (technical):
 
   - DEB: ar archive containing `debian-binary`, `control.tar.*` (control files & scripts), and `data.tar.*` (payload)
   - RPM: header metadata + cpio payload; header contains file lists, dependencies, provides, and scriptlets
+
+  ```mermaid
+  block-beta
+  columns 1
+  block:A
+    A1["debian-binary"]
+    A2["control.tar"]
+    A3["data.tar"]
+  end
+
+  block:B
+    B1["header-metadata"]
+    B2["header"]
+    B3["cpio payload"]
+  end
+  ```
+
+---
 
 - Low-level tools and databases:
 
@@ -82,13 +95,21 @@ Speakers:
 
 (rewrite)
 => Differences between DEB and RPM in the package format and low level tools, but both have similar concepts of metadata, scripts, and system integration causing the problem that this system cannot understand the other system's packages.
+https://linuxvox.com/blog/linux-deb-file/
+https://www.man7.org/linux/man-pages/man5/deb.5.html
+https://jfearn.fedorapeople.org/en-US/RPM/4/html/RPM_Guide/ch-package-structure.html
+http://ftp.rpm.org/max-rpm/s1-rpm-file-format-rpm-file-format.html
 
 ---
 
 - Maintainer scripts / scriptlets:
+
   - DEB: `preinst`, `postinst`, `prerm`, `postrm` — run at install/upgrade/remove
   - RPM: `%pre`, `%post`, `%preun`, `%postun` — run during package lifecycle
   - Scripts run as root and may create users, set permissions, enable services, perform migrations
+
+- Both deb and rpm packages are contains of the binary file, metadata and scripts. They are different in the structure of the package and metadata, so the low level tools (dpkg and rpm) are different.
+- But, if you have the binary file inside the package, you can extract it and run it on any system if the dependencies are satisfied.
 
 ---
 
@@ -116,6 +137,25 @@ Speakers:
 
 ---
 
+## Inspecting a .deb vs .rpm package
+
+<!-- Talk about the file structure and explain more why rpm cannot run on debian systems and vice versa -->
+
+https://rhel.pkgs.org/9/epel-x86_64/neofetch-7.1.0-7.el9.noarch.rpm.html
+https://debian.pkgs.org/12/debian-main-arm64/neofetch_7.1.0-4_all.deb.html
+
+---
+
+![alt text](image.png)
+
+---
+
+# Cross platform package managers
+
+## Snap and Flatpak
+
+---
+
 ## How Snap packages work (and why they are cross-distro)
 
 - **Snap packages** bundle the app and most of its dependencies into a single compressed file (squashfs).
@@ -140,7 +180,7 @@ Speakers:
 }
 </style>
 
-- **Why cross-distro?**
+- **How cross-distro?**
   - Snaps do not rely on the host’s package manager or libraries (no .deb/.rpm needed).
   - As long as `snapd` is installed, snaps work the same way on any Linux distribution.
 - **Flatpak comparison:**
@@ -148,7 +188,10 @@ Speakers:
   - Flatpak also bundles apps and runs them in a sandbox, but uses shared runtimes for common libraries.
   - Both Snap and Flatpak avoid dependency issues and work across most Linux distros.
 
-<span class="ref-corner">https://snapcraft.io/docs/system-architecture</span>
+<span class="ref-corner">
+  <a href="https://snapcraft.io/docs/system-architecture">snapcraft.io/docs/system-architecture</a><br>
+  <a href="https://sdkman.io/articles">sdkman.io/articles</a>
+</span>
 
 ---
 
@@ -176,29 +219,12 @@ Speakers:
 
 ---
 
-## Snap (Canonical) — and a note about Flatpak
+## Adding repositories (concept and short how-to)
 
-- Find: `snap find <name>`
-- Install: `sudo snap install <snap-name>`
-- Remove: `sudo snap remove <snap-name>`
-- List installed: `snap list`
-
----
-
-## Trends & alternatives
-
-- App distribution alternatives: Flatpak and AppImage (app sandboxing, desktop apps)
-- Functional/declarative package managers: Nix / NixOS (focus on reproducibility, rollbacks)
-- Containers change distribution of applications, but package managers remain important for system maintenance and shared libraries
-
----
-
-## Flatpak (brief)
-
-- Flatpak is a cross-distro desktop app system that uses shared runtimes (OSTree) and user-session sandboxing
-- Uses bubblewrap (unprivileged namespaces) for sandboxing and portals for controlled access (files, printing, notifications)
-- Apps rely on large shared runtimes (e.g., GNOME runtime) which reduces per-app duplication
-- Flatpak is user-session focused (works without systemd) and integrates via portals, differing from Snap's system-service model
+- Why: access newer versions, vendor packages, or 3rd-party software
+- Debian/Ubuntu: add a PPA or a `.list` file in `/etc/apt/sources.list.d/`, import GPG key, then `sudo apt update`
+- RHEL/CentOS/AlmaLinux: add a `.repo` file to `/etc/yum.repos.d/`, import GPG key, then `sudo dnf makecache`
+- Security: always verify repository GPG keys and prefer HTTPS where available
 
 ---
 
@@ -248,12 +274,23 @@ Speakers:
 
 ---
 
-## Adding repositories (concept and short how-to)
+## Snap (Canonical)
 
-- Why: access newer versions, vendor packages, or 3rd-party software
-- Debian/Ubuntu: add a PPA or a `.list` file in `/etc/apt/sources.list.d/`, import GPG key, then `sudo apt update`
-- RHEL/CentOS/AlmaLinux: add a `.repo` file to `/etc/yum.repos.d/`, import GPG key, then `sudo dnf makecache`
-- Security: always verify repository GPG keys and prefer HTTPS where available
+- Find: `snap find <name>`
+- Install: `sudo snap install <snap-name>`
+- Remove: `sudo snap remove <snap-name>`
+- List installed: `snap list`
+
+https://snapcraft.io/docs/snap-howto
+
+---
+
+## Flatpak (brief)
+
+- Flatpak is a cross-distro desktop app system that uses shared runtimes (OSTree) and user-session sandboxing
+- Uses bubblewrap (unprivileged namespaces) for sandboxing and portals for controlled access (files, printing, notifications)
+- Apps rely on large shared runtimes (e.g., GNOME runtime) which reduces per-app duplication
+- Flatpak is user-session focused (works without systemd) and integrates via portals, differing from Snap's system-service model
 
 ---
 
@@ -271,24 +308,9 @@ Speakers:
 
 ---
 
-## Demo plan (what you'll show)
-
-1. Debian/Ubuntu VM or container
-
-- Search, install, list installed, remove, and show repo files
-
-2. CentOS/RHEL/AlmaLinux VM or container
-
-- Same sequence with `dnf` and show repo files
-
-3. Optional: Snap on Ubuntu host/VM
-
-- Show `snap find`, `snap install`, `snap list`, `snap remove`
-- Note: snap may require systemd and extra setup in containers
+# Demo
 
 ---
-
-## Demo commands
 
 ### Debian/Ubuntu
 
@@ -316,7 +338,7 @@ sudo dnf remove -y cowsay
 
 ---
 
-### Snap (on Ubuntu)
+### Snap
 
 ```bash
 sudo apt install -y snapd
@@ -328,17 +350,11 @@ sudo snap remove hello-world
 
 ---
 
-## Presenter notes (clarified: prerun & fallback)
+## Trends & alternatives
 
-- Before the demo: run these prechecks on each VM/container (prerun) to avoid delays:
-  - `sudo apt update` or `sudo dnf makecache` to warm caches
-  - Check network connectivity and package availability
-  - Ensure `snapd` is running on Ubuntu host if you plan Snap demo
-- Fallback / pre-recorded options if network or repo is slow:
-  - Have screenshots or short recordings of install/remove commands ready
-  - Use pre-built containers with packages preinstalled (snapshot images)
-  - Explain what you'd run and show the expected output if live run fails
-- Remind audience: repositories vs packages were covered earlier (background slides)
+- App distribution alternatives: Flatpak and AppImage (app sandboxing, desktop apps)
+- Functional/declarative package managers: Nix / NixOS (focus on reproducibility, rollbacks)
+- Containers change distribution of applications, but package managers remain important for system maintenance and shared libraries
 
 ---
 
@@ -354,3 +370,17 @@ sudo snap remove hello-world
 # Thank you
 
 Questions?
+
+---
+
+## Presenter notes (clarified: prerun & fallback)
+
+- Before the demo: run these prechecks on each VM/container (prerun) to avoid delays:
+  - `sudo apt update` or `sudo dnf makecache` to warm caches
+  - Check network connectivity and package availability
+  - Ensure `snapd` is running on Ubuntu host if you plan Snap demo
+- Fallback / pre-recorded options if network or repo is slow:
+  - Have screenshots or short recordings of install/remove commands ready
+  - Use pre-built containers with packages preinstalled (snapshot images)
+  - Explain what you'd run and show the expected output if live run fails
+- Remind audience: repositories vs packages were covered earlier (background slides)
