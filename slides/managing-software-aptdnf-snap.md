@@ -23,8 +23,8 @@ Speakers:
 ## Objectives
 
 - Understand the role of package managers
+- Add and remove a repository
 - Search / install / remove packages
-- Add and inspect repositories (concept)
 - Compare APT, DNF, and Snap
 - Demo
 
@@ -42,9 +42,9 @@ Speakers:
 ---
 
 - Types of package managers:
-  - Imperative: modify system state directly (e.g., `apt install pkg`)
-  - Declarative: define desired state, system converges to it (e.g., NixOS configuration)
+  - Imperative: modify system state directly (e.g., APT, DNF)
   - Application package manager: bundle app + dependencies, isolated from system (e.g., Snap, Flatpak)
+  - Declarative: define desired state, system converges to it (e.g., Nix Package Manager)
 
 ---
 
@@ -93,39 +93,34 @@ Speakers:
   - `dpkg` unpacks DEBs and updates `/var/lib/dpkg/` (status database); APT performs repo management and dependency solving
   - `rpm` manages the RPM DB under `/var/lib/rpm`; DNF/YUM orchestrate transactions using rpm metadata and repo data
 
-(rewrite)
-=> Differences between DEB and RPM in the package format and low level tools, but both have similar concepts of metadata, scripts, and system integration causing the problem that this system cannot understand the other system's packages.
-https://linuxvox.com/blog/linux-deb-file/
-https://www.man7.org/linux/man-pages/man5/deb.5.html
-https://jfearn.fedorapeople.org/en-US/RPM/4/html/RPM_Guide/ch-package-structure.html
-http://ftp.rpm.org/max-rpm/s1-rpm-file-format-rpm-file-format.html
-
----
-
 - Maintainer scripts / scriptlets:
 
   - DEB: `preinst`, `postinst`, `prerm`, `postrm` — run at install/upgrade/remove
   - RPM: `%pre`, `%post`, `%preun`, `%postun` — run during package lifecycle
   - Scripts run as root and may create users, set permissions, enable services, perform migrations
 
+---
+
 - Both deb and rpm packages are contains of the binary file, metadata and scripts. They are different in the structure of the package and metadata, so the low level tools (dpkg and rpm) are different.
 - But, if you have the binary file inside the package, you can extract it and run it on any system if the dependencies are satisfied.
+  https://linuxvox.com/blog/linux-deb-file/
+  https://www.man7.org/linux/man-pages/man5/deb.5.html
+  https://jfearn.fedorapeople.org/en-US/RPM/4/html/RPM_Guide/ch-package-structure.html
+  http://ftp.rpm.org/max-rpm/s1-rpm-file-format-rpm-file-format.html
 
 ---
 
-## How RPM and DEB packages run on the system — integration & examples
+## When install a package...
 
-- Signature & integrity checks:
-
+- Signature & integrity checks
+<!--
   - Repositories sign Release/Packages metadata; `apt` verifies signatures when fetching
-  - RPM packages and repos typically use GPG signatures (`rpm --checksig`, `gpgcheck=1` in .repo files)
+  - RPM packages and repos typically use GPG signatures (`rpm --checksig`, `gpgcheck=1` in .repo files) -->
 
-- Triggers and post-install integration:
+- Triggers and post-install integration
 
-  - Package managers call utilities: `ldconfig` (shared libs), `update-mime-database`, `update-desktop-database`, `gtk-update-icon-cache`
-  - Dpkg triggers allow deferred, batched actions to avoid repeated work during big upgrades
-
----
+  <!-- - Package managers call utilities: `ldconfig` (shared libs), `update-mime-database`, `update-desktop-database`, `gtk-update-icon-cache`
+  - Dpkg triggers allow deferred, batched actions to avoid repeated work during big upgrades -->
 
 - Example inspection commands:
 
@@ -156,9 +151,9 @@ https://debian.pkgs.org/12/debian-main-arm64/neofetch_7.1.0-4_all.deb.html
 
 ---
 
-## How Snap packages work (and why they are cross-distro)
+## Snap packages
 
-- **Snap packages** bundle the app and most of its dependencies into a single compressed file (squashfs).
+- Bundle the app and most of its dependencies into a single compressed file (squashfs).
 - Some snaps use **shared content snaps** (like GNOME or KDE runtimes) to avoid duplicating large libraries.
 - Managed by the `snapd` service, which handles installing, updating, and running snaps.
 - When you run a snap:
@@ -180,17 +175,18 @@ https://debian.pkgs.org/12/debian-main-arm64/neofetch_7.1.0-4_all.deb.html
 }
 </style>
 
-- **How cross-distro?**
+- Cross-distro compatibility:
+
   - Snaps do not rely on the host’s package manager or libraries (no .deb/.rpm needed).
   - As long as `snapd` is installed, snaps work the same way on any Linux distribution.
-- **Flatpak comparison:**
 
-  - Flatpak also bundles apps and runs them in a sandbox, but uses shared runtimes for common libraries.
-  - Both Snap and Flatpak avoid dependency issues and work across most Linux distros.
+- Sandboxing:
+  - Snaps run in a confined environment, limiting access to system resources for security.
+  - Permissions are managed via interfaces that can be connected or disconnected.
+  - <!-- add image showing snap mount and network interfaces -->
 
 <span class="ref-corner">
   <a href="https://snapcraft.io/docs/system-architecture">snapcraft.io/docs/system-architecture</a><br>
-  <a href="https://sdkman.io/articles">sdkman.io/articles</a>
 </span>
 
 ---
@@ -228,52 +224,6 @@ https://debian.pkgs.org/12/debian-main-arm64/neofetch_7.1.0-4_all.deb.html
 
 ---
 
-## Adding repositories (concept and short how-to)
-
-- Package archive layout (technical):
-
-  - DEB: ar archive with `debian-binary`, `control.tar.*` (control files, maintainer scripts), and `data.tar.*` (payload)
-  - RPM: cpio payload inside RPM with headers containing metadata, provides scriptlets and file lists
-
-- Low-level tools and databases:
-
-  - `dpkg` unpacks DEBs and records installed files in `/var/lib/dpkg/` (status database). APT/apt-get/apt handle repos, dependency resolution and transactions.
-  - `rpm` reads/writes the RPM database (`/var/lib/rpm`), and DNF/YUM use that DB plus repository metadata to perform transactions.
-
----
-
-- Maintainer scripts / scriptlets:
-
-  - DEB control scripts: `preinst`, `postinst`, `prerm`, `postrm` run with package lifecycle events (install/upgrade/remove).
-  - RPM scriptlets: `%pre`, `%post`, `%preun`, `%postun` perform pre/post-install or uninstall tasks.
-  - These scripts can enable services, create users, migrate config — so they run with root privileges during package operations.
-
-- Signature & integrity checks:
-
-  - DEB repos use signed Release/Packages files and `apt` verifies repository signatures; `.deb` packages can also be signed (deb sign) though repo signing is common.
-  - RPM packages and repos often use GPG signatures verified by `rpm --checksig` and repository metadata signing (e.g., `gpgcheck=1` in .repo files).
-
----
-
-- Triggers and post-install integration:
-
-  - Package managers call system utilities after install: `ldconfig` (shared libs), `update-desktop-database`, `update-mime-database`, `gtk-update-icon-cache`.
-  - Dpkg triggers allow deferred actions when many packages touch the same resource to optimize updates.
-
-- Example low-level commands (for debugging/inspection):
-
-  - List files in a package: `dpkg -L <package>` or `rpm -ql <package>`
-  - Inspect package metadata: `dpkg-deb -I package.deb` or `rpm -qp --info package.rpm`
-  - Check installed package status: `dpkg -s <package>` or `rpm -q <package>`
-
----
-
-- Implications for system integration:
-  - DEB/RPM packages modify the system filesystem and runtime; upgrade/remove operations must consider config migration and service restarts.
-  - System-level package managers are responsible for consistency of the global package database and inter-package dependency handling.
-
----
-
 ## Snap (Canonical)
 
 - Find: `snap find <name>`
@@ -282,15 +232,6 @@ https://debian.pkgs.org/12/debian-main-arm64/neofetch_7.1.0-4_all.deb.html
 - List installed: `snap list`
 
 https://snapcraft.io/docs/snap-howto
-
----
-
-## Flatpak (brief)
-
-- Flatpak is a cross-distro desktop app system that uses shared runtimes (OSTree) and user-session sandboxing
-- Uses bubblewrap (unprivileged namespaces) for sandboxing and portals for controlled access (files, printing, notifications)
-- Apps rely on large shared runtimes (e.g., GNOME runtime) which reduces per-app duplication
-- Flatpak is user-session focused (works without systemd) and integrates via portals, differing from Snap's system-service model
 
 ---
 
@@ -322,6 +263,9 @@ cowsay "Hello from APT"
 apt list --installed | grep cowsay || true
 sudo apt remove -y cowsay
 ```
+
+- GUI: Any software center (e.g., Ubuntu Software/GNONE Software/KDE Discover).
+- Or Synaptic Package Manager.
 
 ---
 
@@ -355,6 +299,15 @@ sudo snap remove hello-world
 - App distribution alternatives: Flatpak and AppImage (app sandboxing, desktop apps)
 - Functional/declarative package managers: Nix / NixOS (focus on reproducibility, rollbacks)
 - Containers change distribution of applications, but package managers remain important for system maintenance and shared libraries
+
+---
+
+## Flatpak (brief)
+
+- Flatpak is a cross-distro desktop app system that uses shared runtimes (OSTree) and user-session sandboxing
+- Uses bubblewrap (unprivileged namespaces) for sandboxing and portals for controlled access (files, printing, notifications)
+- Apps rely on large shared runtimes (e.g., GNOME runtime) which reduces per-app duplication
+- Flatpak is user-session focused (works without systemd) and integrates via portals, differing from Snap's system-service model
 
 ---
 
