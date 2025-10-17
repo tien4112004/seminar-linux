@@ -88,47 +88,12 @@ Speakers:
 
 ---
 
-- Low-level tools and databases:
-
-  - `dpkg` unpacks DEBs and updates `/var/lib/dpkg/` (status database); APT performs repo management and dependency solving
-  - `rpm` manages the RPM DB under `/var/lib/rpm`; DNF/YUM orchestrate transactions using rpm metadata and repo data
-
-- Maintainer scripts / scriptlets:
-
-  - DEB: `preinst`, `postinst`, `prerm`, `postrm` — run at install/upgrade/remove
-  - RPM: `%pre`, `%post`, `%preun`, `%postun` — run during package lifecycle
-  - Scripts run as root and may create users, set permissions, enable services, perform migrations
-
----
-
 - Both deb and rpm packages are contains of the binary file, metadata and scripts. They are different in the structure of the package and metadata, so the low level tools (dpkg and rpm) are different.
 - But, if you have the binary file inside the package, you can extract it and run it on any system if the dependencies are satisfied.
   https://linuxvox.com/blog/linux-deb-file/
   https://www.man7.org/linux/man-pages/man5/deb.5.html
-  https://jfearn.fedorapeople.org/en-US/RPM/4/html/RPM_Guide/ch-package-structure.html
+  https://jfearn.fedorapeople.org/en-US/RPM/4/html/RPM_Guide/ch-p ackage-structure.html
   http://ftp.rpm.org/max-rpm/s1-rpm-file-format-rpm-file-format.html
-
----
-
-## When install a package...
-
-- Signature & integrity checks
-<!--
-  - Repositories sign Release/Packages metadata; `apt` verifies signatures when fetching
-  - RPM packages and repos typically use GPG signatures (`rpm --checksig`, `gpgcheck=1` in .repo files) -->
-
-- Triggers and post-install integration
-
-  <!-- - Package managers call utilities: `ldconfig` (shared libs), `update-mime-database`, `update-desktop-database`, `gtk-update-icon-cache`
-  - Dpkg triggers allow deferred, batched actions to avoid repeated work during big upgrades -->
-
-- Example inspection commands:
-
-  - List files: `dpkg -L <pkg>` or `rpm -ql <pkg>`
-  - Inspect package: `dpkg-deb -I package.deb` or `rpm -qp --info package.rpm`
-  - Check status: `dpkg -s <pkg>` or `rpm -q <pkg>`
-
-- Implications: DEB/RPM modify global filesystem and system state; upgrades can require config migration and service restarts
 
 ---
 
@@ -142,6 +107,45 @@ https://debian.pkgs.org/12/debian-main-arm64/neofetch_7.1.0-4_all.deb.html
 ---
 
 ![alt text](image.png)
+
+---
+
+- Low-level tools and databases:
+
+  - `dpkg` unpacks DEBs and updates `/var/lib/dpkg/` (status database); APT performs repo management and dependency solving
+  - `rpm` manages the RPM DB under `/var/lib/rpm`; DNF/YUM orchestrate transactions using rpm metadata and repo data
+
+- Maintainer scripts / scriptlets:
+
+  - DEB: `preinst`, `postinst`, `prerm`, `postrm` — run at install/upgrade/remove
+  - RPM: `%pre`, `%post`, `%preun`, `%postun` — run during package lifecycle
+  - Scripts run as root and may create users, set permissions, enable services, perform migrations
+
+---
+
+## When install a package...
+
+- Signature & integrity checks
+<!--
+  - Repositories sign Release/Packages metadata; `apt` verifies signatures when fetching
+  - RPM packages and repos typically use GPG signatures (`rpm --checksig`, `gpgcheck=1` in .repo files) -->
+
+- Resolve dependencies
+
+- Install dependencies and the package
+
+- Triggers and post-install integration
+
+  <!-- - Package managers call utilities: `ldconfig` (shared libs), `update-mime-database`, `update-desktop-database`, `gtk-update-icon-cache`
+  - Dpkg triggers allow deferred, batched actions to avoid repeated work during big upgrades -->
+
+<!-- - Example inspection commands:
+
+  - List files: `dpkg -L <pkg>` or `rpm -ql <pkg>`
+  - Inspect package: `dpkg-deb -I package.deb` or `rpm -qp --info package.rpm`
+  - Check status: `dpkg -s <pkg>` or `rpm -q <pkg>` -->
+
+- Implications: DEB/RPM modify global filesystem and system state; upgrades can require config migration and service restarts
 
 ---
 
@@ -237,15 +241,20 @@ https://snapcraft.io/docs/snap-howto
 
 ## Comparison: APT | DNF | Snap
 
-| APT (Debian/Ubuntu)                                      | DNF (Fedora/RHEL/AlmaLinux)                              | Snap (cross-distro)                                                 |
-| -------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------- |
-| Package format: .deb                                     | Package format: .rpm                                     | Package format: snap bundle                                         |
-| Repo files: /etc/apt/sources.list(.d)                    | Repo files: /etc/yum.repos.d/\*.repo                     | Managed by snapd (no distro repo files)                             |
-| Strong dependency resolution (dpkg backend)              | Dependency resolution with rich metadata, plugins        | Bundles dependencies, isolated runtime (larger size)                |
-| System-focused packages, integrates with system services | System-focused packages, plugin ecosystem                | App-focused, sandboxed, transactional installs                      |
-| Typical use: system packages, servers, libraries         | Typical use: system packages, enterprise RHEL ecosystems | Typical use: desktop and some server apps for cross-distro delivery |
-| Pros: mature, fast, small packages                       | Pros: modern metadata, modular repos                     | Pros: cross-distro, sandboxed, easy packaging                       |
-| Cons: tied to Debian ecosystem                           | Cons: tied to RPM ecosystem                              | Cons: larger disk usage, sometimes slower start, requires snapd     |
+| APT                                                      | DNF                                               | Snap                                                 |
+| -------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------- |
+| Package format: .deb                                     | Package format: .rpm                              | Package format: snap bundle                          |
+| Repo files: /etc/apt/sources.list(.d)                    | Repo files: /etc/yum.repos.d/\*.repo              | Managed by snapd (no distro repo files)              |
+| Strong dependency resolution (dpkg backend)              | Dependency resolution with rich metadata, plugins | Bundles dependencies, isolated runtime (larger size) |
+| System-focused packages, integrates with system services | System-focused packages, plugin ecosystem         | App-focused, sandboxed, transactional installs       |
+
+---
+
+| APT (Debian/Ubuntu)                              | DNF (Fedora/RHEL/AlmaLinux)                              | Snap (cross-distro)                                                 |
+| ------------------------------------------------ | -------------------------------------------------------- | ------------------------------------------------------------------- |
+| Typical use: system packages, servers, libraries | Typical use: system packages, enterprise RHEL ecosystems | Typical use: desktop and some server apps for cross-distro delivery |
+| Pros: mature, fast, small packages               | Pros: modern metadata, modular repos                     | Pros: cross-distro, sandboxed, easy packaging                       |
+| Cons: tied to Debian ecosystem                   | Cons: tied to RPM ecosystem                              | Cons: larger disk usage, sometimes slower start, requires snapd     |
 
 ---
 
