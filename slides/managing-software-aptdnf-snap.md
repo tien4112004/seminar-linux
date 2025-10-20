@@ -263,17 +263,69 @@ https://snapcraft.io/docs/snap-howto
 
 # Demo
 
+Install a package that not exists in default repositories by adding a new repository
+
+https://www.sublimetext.com/docs/linux_repositories.html
+
 ---
 
 ### Debian/Ubuntu
 
+#### Repository structure
+
+```
+deb [repository_url] [distribution] [component]
+```
+
+- `distribution`: Specified the distribution name of the Debian (e.g., stable, buster, focal) or Ubuntu (e.g., focal, jammy)
+- `component`: Define the component which can be main, contrib, and non-free
+
+---
+
+### Debian/Ubuntu
+
+#### Add a new repository
+
+- Edit `/etc/apt/sources.list`
+- Use add-apt-repository command
+
+```bash
+# add GPG key
+wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | sudo tee /etc/apt/keyrings/sublimehq-pub.asc > /dev/null
+
+# .list file
+echo "deb [signed-by=/etc/apt/keyrings/sublimehq-pub.asc] https://download.sublimetext.com/ apt/stable main" | \
+sudo tee /etc/apt/sources.list.d/sublime-text.list
+
+# .source file
+echo -e
+"Types: deb
+URIs: https://download.sublimetext.com/
+Suites: apt/stable/
+Architectures: amd64
+Components: main
+Signed-By: /etc/apt/keyrings/sublimehq-pub.asc" | sudo tee /etc/apt/sources.list.d/sublime-text.source
+```
+
+- Using GUI tools.
+
+https://itslinuxfoss.com/add-debian-repository/
+
+---
+
+### Debian/Ubuntu
+
+#### Installing a software from added repositorie
+
 ```bash
 sudo apt update
-apt search cowsay | head -n 20
-sudo apt install -y cowsay
-cowsay "Hello from APT"
-apt list --installed | grep cowsay || true
-sudo apt remove -y cowsay
+apt search sublime-text | head -n 20
+sudo apt install sublime-text
+apt list --installed | grep sublime-text || true
+sudo apt remove sublime-text
+
+sudo add-apt-repository -r \
+"deb [signed-by=/etc/apt/keyrings/sublimehq-pub.asc] https://download.sublimetext.com/ apt/stable/"
 ```
 
 - GUI: Any software center (e.g., Ubuntu Software/GNONE Software/KDE Discover).
@@ -286,22 +338,16 @@ sudo apt remove -y cowsay
 - Adding/Disabling/Removing repo: https://gist.github.com/aelkz/0dc6864cd7f3665a2780b2a111ad1a49
 
 ```bash
-# Add repo: using RPM package from RPM Fusion
-sudo dnf install \
-  https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
-  https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
-
-# Add repo: using .repo file
-sudo dnf-3 config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+sudo rpm -v --import https://download.sublimetext.com/sublimehq-rpm-pub.gpg
+sudo dnf config-manager --add-repo https://download.sublimetext.com/rpm/stable/x86_64/sublime-text.repo
 ```
 
 ```bash
 sudo dnf makecache
-dnf search cowsay | head -n 20
-sudo dnf install -y cowsay
-cowsay "Hello from DNF"
-dnf list installed | grep cowsay || true
-sudo dnf remove -y cowsay
+sudo dnf install -y sublime-text
+dnf list installed | grep sublime-text || true
+sudo dnf remove -y sublime-text
+sudo dnf config-manager --remove-repo https://download.sublimetext.com/rpm/stable/x86_64/sublime-text.repo
 ```
 
 ---
