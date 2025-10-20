@@ -70,30 +70,29 @@ Speakers:
   - DEB: ar archive containing `debian-binary`, `control.tar.*` (control files & scripts), and `data.tar.*` (payload)
   - RPM: header metadata + cpio payload; header contains file lists, dependencies, provides, and scriptlets
 
-  ```mermaid
-  block-beta
-  columns 1
-  block:A
-    A1["debian-binary"]
-    A2["control.tar"]
-    A3["data.tar"]
-  end
-
-  block:B
-    B1["header-metadata"]
-    B2["header"]
-    B3["cpio payload"]
-  end
-  ```
-
 ---
+
+<style>
+.ref-corner {
+  position: absolute;
+  bottom: 60px;
+  right: 40px;
+  font-size: 0.7em;
+  color: #888;
+  text-align: right;
+  z-index: 10;
+}
+</style>
 
 - Both deb and rpm packages are contains of the binary file, metadata and scripts. They are different in the structure of the package and metadata, so the low level tools (dpkg and rpm) are different.
 - But, if you have the binary file inside the package, you can extract it and run it on any system if the dependencies are satisfied.
-  https://linuxvox.com/blog/linux-deb-file/
-  https://www.man7.org/linux/man-pages/man5/deb.5.html
-  https://jfearn.fedorapeople.org/en-US/RPM/4/html/RPM_Guide/ch-p ackage-structure.html
-  http://ftp.rpm.org/max-rpm/s1-rpm-file-format-rpm-file-format.html
+
+<span class="ref-corner">
+  <a href="https://linuxvox.com/blog/linux-deb-file/">linuxvox.com/blog/linux-deb-file/</a><br>
+  <a href="https://www.man7.org/linux/man-pages/man5/deb.5.html">man7.org/linux/man-pages/man5/deb.5.html</a><br>
+  <a href="https://jfearn.fedorapeople.org/en-US/RPM/4/html/RPM_Guide/ch-package-structure.html">jfearn.fedorapeople.org/en-US/RPM/4/html/RPM_Guide/ch-package-structure.html</a><br> 
+  <a href="http://ftp.rpm.org/max-rpm/s1-rpm-file-format-rpm-file-format.html">ftp.rpm.org/max-rpm/s1-rpm-file-format-rpm-file-format.html</a><br>
+</span>
 
 ---
 
@@ -187,7 +186,8 @@ https://debian.pkgs.org/12/debian-main-arm64/neofetch_7.1.0-4_all.deb.html
 - Sandboxing:
   - Snaps run in a confined environment, limiting access to system resources for security.
   - Permissions are managed via interfaces that can be connected or disconnected.
-  - <!-- add image showing snap mount and network interfaces -->
+
+<!-- add image showing snap mount and network interfaces -->
 
 <span class="ref-corner">
   <a href="https://snapcraft.io/docs/system-architecture">snapcraft.io/docs/system-architecture</a><br>
@@ -222,8 +222,11 @@ https://debian.pkgs.org/12/debian-main-arm64/neofetch_7.1.0-4_all.deb.html
 ## Adding repositories (concept and short how-to)
 
 - Why: access newer versions, vendor packages, or 3rd-party software
-- Debian/Ubuntu: add a PPA or a `.list` file in `/etc/apt/sources.list.d/`, import GPG key, then `sudo apt update`
-- RHEL/CentOS/AlmaLinux: add a `.repo` file to `/etc/yum.repos.d/`, import GPG key, then `sudo dnf makecache`
+- Debian/Ubuntu:
+  - Add a PPA or a `.list` file in `/etc/apt/sources.list.d/`, import GPG key, then `sudo apt update`
+- RHEL/CentOS/AlmaLinux:
+  - Add a `.repo` file to `/etc/yum.repos.d/`, import GPG key, then `sudo dnf makecache`
+  - Use `dnf config-manager --add-repo <repo-url>`
 - Security: always verify repository GPG keys and prefer HTTPS where available
 
 ---
@@ -279,6 +282,18 @@ sudo apt remove -y cowsay
 ---
 
 ### CentOS/RHEL/AlmaLinux
+
+- Adding/Disabling/Removing repo: https://gist.github.com/aelkz/0dc6864cd7f3665a2780b2a111ad1a49
+
+```bash
+# Add repo: using RPM package from RPM Fusion
+sudo dnf install \
+  https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
+  https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+
+# Add repo: using .repo file
+sudo dnf-3 config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+```
 
 ```bash
 sudo dnf makecache
