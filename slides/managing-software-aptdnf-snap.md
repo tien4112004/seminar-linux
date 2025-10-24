@@ -282,6 +282,18 @@ deb [repository_url] [distribution] [component]
 
 ---
 
+<style>
+.ref-corner {
+  position: absolute;
+  bottom: 60px;
+  right: 40px;
+  font-size: 0.7em;
+  color: #888;
+  text-align: right;
+  z-index: 10;
+}
+</style>
+
 ### Debian/Ubuntu
 
 #### Add a new repository
@@ -309,13 +321,16 @@ Signed-By: /etc/apt/keyrings/sublimehq-pub.asc" | sudo tee /etc/apt/sources.list
 
 - Using GUI tools.
 
-https://itslinuxfoss.com/add-debian-repository/
+<span class="ref-corner">
+  <a href="https://itslinuxfoss.com/add-debian-repository/
+  ">itslinuxfoss.com/add-debian-repository/</a><br>
+</span>
 
 ---
 
 ### Debian/Ubuntu
 
-#### Installing a software from added repositorie
+#### Installing a software from added repositories
 
 ```bash
 sudo apt update
@@ -354,6 +369,8 @@ sudo dnf config-manager --remove-repo https://download.sublimetext.com/rpm/stabl
 
 ### Snap
 
+- Snap is a centralized app store, managed by Canonical. So there are no way to add/remove repository like APT or DNF.
+
 ```bash
 sudo apt install -y snapd
 snap find hello-world | head -n 10
@@ -369,15 +386,6 @@ sudo snap remove hello-world
 - App distribution alternatives: Flatpak and AppImage (app sandboxing, desktop apps)
 - Functional/declarative package managers: Nix / NixOS (focus on reproducibility, rollbacks)
 - Containers change distribution of applications, but package managers remain important for system maintenance and shared libraries
-
----
-
-## Flatpak (brief)
-
-- Flatpak is a cross-distro desktop app system that uses shared runtimes (OSTree) and user-session sandboxing
-- Uses bubblewrap (unprivileged namespaces) for sandboxing and portals for controlled access (files, printing, notifications)
-- Apps rely on large shared runtimes (e.g., GNOME runtime) which reduces per-app duplication
-- Flatpak is user-session focused (works without systemd) and integrates via portals, differing from Snap's system-service model
 
 ---
 
@@ -407,3 +415,12 @@ Questions?
   - Use pre-built containers with packages preinstalled (snapshot images)
   - Explain what you'd run and show the expected output if live run fails
 - Remind audience: repositories vs packages were covered earlier (background slides)
+
+---
+
+## Flatpak (brief)
+
+- Flatpak is a cross-distro desktop app system that uses shared runtimes (OSTree) and user-session sandboxing
+- Uses bubblewrap (unprivileged namespaces) for sandboxing and portals for controlled access (files, printing, notifications)
+- Apps rely on large shared runtimes (e.g., GNOME runtime) which reduces per-app duplication
+- Flatpak is user-session focused (works without systemd) and integrates via portals, differing from Snap's system-service model
