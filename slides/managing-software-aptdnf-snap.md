@@ -3,7 +3,7 @@ marp: true
 theme: default
 paginate: true
 header: "Managing Software with APT, DNF, and Snap — Software management on modern Linux"
-footer: "Speakers: 22120368, 22120375, 22120387"
+footer: "Speakers: 22120368, 22120375, 22120383"
 _class: lead
 backgroundImage: url('https://marp.app/assets/hero-background.svg')
 ---
