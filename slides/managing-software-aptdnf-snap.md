@@ -32,7 +32,15 @@ Speakers:
 
 ## Background: Package managers
 
-- A tool for **discovery**, **install**, **upgrade**, and **removal** of system package (including apps and its libraries to run). _(Not limited to Linux systems! e.g., Homebrew on macOS, Chocolatey on Windows)_
+- A tool for **discovery**, **install**, **upgrade**, and **removal** of system package (including apps and its libraries to run). _Not limited to Linux systems!_
+
+|                                            Windows                                            |                                                                                                                                                                 Linux                                                                                                                                                                  |                                     MacOS                                      |
+| :-------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------: |
+| <img src="https://img.chocolatey.org/logos/chocolatey-icon.svg" alt="Chocolatey" height="72"> | <img src="https://www.debian.org/Pics/debian-logo-1024x576.png" alt="Debian" height="64"> <img src="https://fedoraproject.org/assets/images/logos/fedora-blue.png" alt="Fedora" height="64"> <img src="https://snapcraft.io/favicon.ico" alt="Snap" height="48"> <img src="https://flatpak.org/favicon.ico" alt="Flatpak" height="48"> | <img src="https://brew.sh/assets/img/homebrew.svg" alt="Homebrew" height="72"> |
+|                                          Chocolatey                                           |                                                                                                                                       APT / DNF (Debian / RPM) • Snap • Flatpak (app sandboxing)                                                                                                                                       |                                    Homebrew                                    |
+
+---
+
 - They perform dependency resolution, manage metadata and caches, and apply updates
   > Inspect dependencies using `apt`: `apt-cache depends vlc`
   <!-- NOTE: Should mention dpkg/rpm -i -->
@@ -55,6 +63,10 @@ Speakers:
 - Repo metadata (indexes) enable search, dependency resolution, and fast installs via caching
 - Trust model: repositories are usually signed with GPG keys — verify before adding
 
+<div style="text-align:center">
+  <img src="image-1.png" alt="diagram" style="max-width:80%; height:auto;" />
+</div>
+
 ---
 
 # Imperative package formats
@@ -63,62 +75,101 @@ Speakers:
 
 ---
 
-## Why DEB cannot run on RPM-based systems (and vice versa)?
+## Why "imperative"?
 
-- Package archive layout (technical):
-
-  - DEB: ar archive containing `debian-binary`, `control.tar.*` (control files & scripts), and `data.tar.*` (payload)
-  - RPM: header metadata + cpio payload; header contains file lists, dependencies, provides, and scriptlets
+- The system state will change immediately after you run the command.
+- "System state" includes installed packages, configuration files, services, libraries, and overall system behavior.
 
 ---
 
-<style>
-.ref-corner {
-  position: absolute;
-  bottom: 60px;
-  right: 40px;
-  font-size: 0.7em;
-  color: #888;
-  text-align: right;
-  z-index: 10;
-}
-</style>
+Sometimes, you may see "not upgrading" packages...
 
-- Both deb and rpm packages are contains of the binary file, metadata and scripts. They are different in the structure of the package and metadata, so the low level tools (dpkg and rpm) are different.
-- But, if you have the binary file inside the package, you can extract it and run it on any system if the dependencies are satisfied.
-
-<span class="ref-corner">
-  <a href="https://linuxvox.com/blog/linux-deb-file/">linuxvox.com/blog/linux-deb-file/</a><br>
-  <a href="https://www.man7.org/linux/man-pages/man5/deb.5.html">man7.org/linux/man-pages/man5/deb.5.html</a><br>
-  <a href="https://jfearn.fedorapeople.org/en-US/RPM/4/html/RPM_Guide/ch-package-structure.html">jfearn.fedorapeople.org/en-US/RPM/4/html/RPM_Guide/ch-package-structure.html</a><br> 
-  <a href="http://ftp.rpm.org/max-rpm/s1-rpm-file-format-rpm-file-format.html">ftp.rpm.org/max-rpm/s1-rpm-file-format-rpm-file-format.html</a><br>
-</span>
+![alt text](image-3.png)
 
 ---
 
-## Inspecting a .deb vs .rpm package
+Because of dependency resolution:
 
-<!-- Talk about the file structure and explain more why rpm cannot run on debian systems and vice versa -->
+Because package managers resolve dependency constraints before upgrading, some packages may be "held back" (not upgraded) to avoid breaking the system. Common reasons:
 
-https://rhel.pkgs.org/9/epel-x86_64/neofetch-7.1.0-7.el9.noarch.rpm.html
-https://debian.pkgs.org/12/debian-main-arm64/neofetch_7.1.0-4_all.deb.html
+- Conflicting dependencies: two packages require incompatible versions of the same library; upgrading one would break the other.
+- Version pinning or holds: a package or repository policy prevents newer versions from being installed.
+- New or replaced packages: the upgrade requires installing, removing, or replacing packages (e.g., file conflicts) and the safe/normal upgrade command doesn't allow those changes.
 
----
+How to inspect and resolve held / not-upgraded packages (APT):
 
-![alt text](image.png)
+1. Refresh metadata and list upgradable packages:
 
----
+```bash
+sudo apt update
+apt list --upgradable
+```
 
-- Low-level tools and databases:
+2. Check why a package is held or which versions are available:
 
-  - `dpkg` unpacks DEBs and updates `/var/lib/dpkg/` (status database); APT performs repo management and dependency solving
-  - `rpm` manages the RPM DB under `/var/lib/rpm`; DNF/YUM orchestrate transactions using rpm metadata and repo data
+```bash
+apt policy <package>
+apt-cache depends <package>
+apt-cache rdepends <package>
+```
 
-- Maintainer scripts / scriptlets:
+3. Try the safe upgrade first (doesn't remove packages):
 
-  - DEB: `preinst`, `postinst`, `prerm`, `postrm` — run at install/upgrade/remove
-  - RPM: `%pre`, `%post`, `%preun`, `%postun` — run during package lifecycle
-  - Scripts run as root and may create users, set permissions, enable services, perform migrations
+```bash
+sudo apt upgrade
+```
+
+4. If a package is held because the upgrade needs removals/replacements, use a higher-permission upgrade that allows package replacement:
+
+```bash
+sudo apt full-upgrade    # alias for apt-get dist-upgrade; allows installing/removing packages
+```
+
+5. Fix broken dependencies and finalize:
+
+```bash
+sudo apt install -f     # attempt to fix broken deps
+sudo dpkg --configure -a
+```
+
+6. Check for holds and unhold if needed:
+
+```bash
+apt-mark showhold
+sudo apt-mark unhold <package>
+```
+
+7. If automated solvers struggle, use `aptitude`'s interactive resolver which often suggests acceptable dependency resolutions:
+
+```bash
+sudo aptitude
+```
+
+Equivalent checks for DNF (RPM ecosystems):
+
+- Update metadata and check updates:
+
+```bash
+sudo dnf check-update
+sudo dnf upgrade --refresh
+```
+
+- If DNF reports conflicts, you can allow replacements/removals or use `--allowerasing` to permit replacing packages that block the transaction:
+
+```bash
+sudo dnf upgrade --allowerasing
+```
+
+- To synchronize installed packages with repository versions (useful after switching repos):
+
+```bash
+sudo dnf distro-sync
+```
+
+Notes:
+
+- Snap and Flatpak are app bundles and are generally unaffected by system-level dependency resolution because they bundle runtimes or use sandboxed runtimes.
+- Always review proposed package removals before confirming a full-upgrade or using `--allowerasing` to avoid unintended removals.
 
 ---
 
@@ -148,6 +199,64 @@ https://debian.pkgs.org/12/debian-main-arm64/neofetch_7.1.0-4_all.deb.html
 
 ---
 
+<!-- ## Why DEB cannot run on RPM-based systems (and vice versa)?
+
+- Package archive layout (technical):
+
+  - DEB: ar archive containing `debian-binary`, `control.tar.*` (control files & scripts), and `data.tar.*` (payload)
+  - RPM: header metadata + cpio payload; header contains file lists, dependencies, provides, and scriptlets
+
+---
+
+<style>
+.ref-corner {
+  position: absolute;
+  bottom: 60px;
+  right: 40px;
+  font-size: 0.7em;
+  color: #888;
+  text-align: right;
+  z-index: 10;
+}
+</style>
+
+- Both deb and rpm packages are contains of the binary file, metadata and scripts. They are different in the structure of the package and metadata, so the low level tools (dpkg and rpm) are different.
+- But, if you have the binary file inside the package, you can extract it and run it on any system if the dependencies are satisfied.
+
+<span class="ref-corner">
+  <a href="https://linuxvox.com/blog/linux-deb-file/">linuxvox.com/blog/linux-deb-file/</a><br>
+  <a href="https://www.man7.org/linux/man-pages/man5/deb.5.html">man7.org/linux/man-pages/man5/deb.5.html</a><br>
+  <a href="https://jfearn.fedorapeople.org/en-US/RPM/4/html/RPM_Guide/ch-package-structure.html">jfearn.fedorapeople.org/en-US/RPM/4/html/RPM_Guide/ch-package-structure.html</a><br>
+  <a href="http://ftp.rpm.org/max-rpm/s1-rpm-file-format-rpm-file-format.html">ftp.rpm.org/max-rpm/s1-rpm-file-format-rpm-file-format.html</a><br>
+</span>
+
+---
+
+## Inspecting a .deb vs .rpm package
+
+https://rhel.pkgs.org/9/epel-x86_64/neofetch-7.1.0-7.el9.noarch.rpm.html
+https://debian.pkgs.org/12/debian-main-arm64/neofetch_7.1.0-4_all.deb.html
+
+---
+
+![alt text](image.png)
+
+---
+
+- Low-level tools and databases:
+
+  - `dpkg` unpacks DEBs and updates `/var/lib/dpkg/` (status database); APT performs repo management and dependency solving
+  - `rpm` manages the RPM DB under `/var/lib/rpm`; DNF/YUM orchestrate transactions using rpm metadata and repo data
+
+- Maintainer scripts / scriptlets:
+
+  - DEB: `preinst`, `postinst`, `prerm`, `postrm` — run at install/upgrade/remove
+  - RPM: `%pre`, `%post`, `%preun`, `%postun` — run during package lifecycle
+  - Scripts run as root and may create users, set permissions, enable services, perform migrations
+
+---
+--->
+
 # Cross platform package managers
 
 ## Snap and Flatpak
@@ -159,10 +268,10 @@ https://debian.pkgs.org/12/debian-main-arm64/neofetch_7.1.0-4_all.deb.html
 - Bundle the app and most of its dependencies into a single compressed file (squashfs).
 - Some snaps use **shared content snaps** (like GNOME or KDE runtimes) to avoid duplicating large libraries.
 - Managed by the `snapd` service, which handles installing, updating, and running snaps.
-- When you run a snap:
+<!-- - When you run a snap:
   - `snapd` mounts the snap package as a virtual filesystem.
   - The app runs in a sandbox, isolated from the rest of the system.
-  - Access to system resources is controlled by interfaces (permissions).
+  - Access to system resources is controlled by interfaces (permissions). -->
 
 ---
 
@@ -219,9 +328,9 @@ https://debian.pkgs.org/12/debian-main-arm64/neofetch_7.1.0-4_all.deb.html
 
 ---
 
-## Adding repositories (concept and short how-to)
+## Adding repositories
 
-- Why: access newer versions, vendor packages, or 3rd-party software
+- Access newer versions, vendor packages, or 3rd-party software
 - Debian/Ubuntu:
   - Add a PPA or a `.list` file in `/etc/apt/sources.list.d/`, import GPG key, then `sudo apt update`
 - RHEL/CentOS/AlmaLinux:
@@ -239,6 +348,8 @@ https://debian.pkgs.org/12/debian-main-arm64/neofetch_7.1.0-4_all.deb.html
 - List installed: `snap list`
 
 https://snapcraft.io/docs/snap-howto
+
+- _Snap is a centralized app store, managed by Canonical. So there are no way to add/remove repository like APT or DNF._
 
 ---
 
@@ -271,7 +382,7 @@ https://www.sublimetext.com/docs/linux_repositories.html
 
 ### Debian/Ubuntu
 
-#### Repository structure
+#### Repository structure (.list file )
 
 ```
 deb [repository_url] [distribution] [component]
@@ -279,6 +390,24 @@ deb [repository_url] [distribution] [component]
 
 - `distribution`: Specified the distribution name of the Debian (e.g., stable, buster, focal) or Ubuntu (e.g., focal, jammy)
 - `component`: Define the component which can be main, contrib, and non-free
+
+---
+
+### Debian/Ubuntu
+
+#### Repository structure (.sources file )
+
+- More declarative. Being recommended recently.
+- Structure:
+
+```
+Types: deb
+URIs: [repository_url]
+Suites: [distribution: stable, buster, focal...]
+Architectures: amd64 | i386 | arm64 | all
+Components: [component: main, contrib, non-free]
+Signed-By: [path_to_GPG_key]
+```
 
 ---
 
@@ -299,27 +428,36 @@ deb [repository_url] [distribution] [component]
 #### Add a new repository
 
 - Edit `/etc/apt/sources.list`
-- Use add-apt-repository command
+- Use GUI software center (e.g., Ubuntu Software)
+<span></span>
+<div style="text-align:center">
+  <img src="image-2.png" alt="diagram" style="max-height:80%; height:auto;" />
+</div>
+
+---
 
 ```bash
 # add GPG key
-wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | sudo tee /etc/apt/keyrings/sublimehq-pub.asc > /dev/null
+wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | \
+  sudo tee /etc/apt/keyrings/sublimehq-pub.asc > /dev/null
 
 # .list file
-echo "deb [signed-by=/etc/apt/keyrings/sublimehq-pub.asc] https://download.sublimetext.com/ apt/stable main" | \
-sudo tee /etc/apt/sources.list.d/sublime-text.list
+echo "deb [signed-by=/etc/apt/keyrings/sublimehq-pub.asc] https://download.sublimetext.com/ apt/stable/" \
+| sudo tee /etc/apt/sources.list.d/sublime-text.list >/dev/null
 
 # .source file
-echo -e
+echo -e \
 "Types: deb
 URIs: https://download.sublimetext.com/
 Suites: apt/stable/
 Architectures: amd64
 Components: main
 Signed-By: /etc/apt/keyrings/sublimehq-pub.asc" | sudo tee /etc/apt/sources.list.d/sublime-text.source
-```
 
-- Using GUI tools.
+# apt-add-repository
+sudo apt-add-repository "deb [signed-by=/etc/apt/keyrings/sublimehq-pub.asc] \
+        https://download.sublimetext.com/ apt/stable/"
+```
 
 <span class="ref-corner">
   <a href="https://itslinuxfoss.com/add-debian-repository/
@@ -339,8 +477,7 @@ sudo apt install sublime-text
 apt list --installed | grep sublime-text || true
 sudo apt remove sublime-text
 
-sudo add-apt-repository -r \
-"deb [signed-by=/etc/apt/keyrings/sublimehq-pub.asc] https://download.sublimetext.com/ apt/stable/"
+sudo add-apt-repository -r "deb https://download.sublimetext.com/ apt/stable/"
 ```
 
 - GUI: Any software center (e.g., Ubuntu Software/GNONE Software/KDE Discover).
@@ -353,8 +490,10 @@ sudo add-apt-repository -r \
 - Adding/Disabling/Removing repo: https://gist.github.com/aelkz/0dc6864cd7f3665a2780b2a111ad1a49
 
 ```bash
-sudo rpm -v --import https://download.sublimetext.com/sublimehq-rpm-pub.gpg
-sudo dnf config-manager --add-repo https://download.sublimetext.com/rpm/stable/x86_64/sublime-text.repo
+sudo rpm -v --import \
+  https://download.sublimetext.com/sublimehq-rpm-pub.gpg
+sudo dnf config-manager --add-repo \
+  https://download.sublimetext.com/rpm/stable/x86_64/sublime-text.repo
 ```
 
 ```bash
@@ -362,14 +501,13 @@ sudo dnf makecache
 sudo dnf install -y sublime-text
 dnf list installed | grep sublime-text || true
 sudo dnf remove -y sublime-text
-sudo dnf config-manager --remove-repo https://download.sublimetext.com/rpm/stable/x86_64/sublime-text.repo
+sudo dnf config-manager --remove-repo \
+  https://download.sublimetext.com/rpm/stable/x86_64/sublime-text.repo
 ```
 
 ---
 
 ### Snap
-
-- Snap is a centralized app store, managed by Canonical. So there are no way to add/remove repository like APT or DNF.
 
 ```bash
 sudo apt install -y snapd
@@ -404,6 +542,7 @@ Questions?
 
 ---
 
+<!--
 ## Presenter notes (clarified: prerun & fallback)
 
 - Before the demo: run these prechecks on each VM/container (prerun) to avoid delays:
@@ -423,4 +562,4 @@ Questions?
 - Flatpak is a cross-distro desktop app system that uses shared runtimes (OSTree) and user-session sandboxing
 - Uses bubblewrap (unprivileged namespaces) for sandboxing and portals for controlled access (files, printing, notifications)
 - Apps rely on large shared runtimes (e.g., GNOME runtime) which reduces per-app duplication
-- Flatpak is user-session focused (works without systemd) and integrates via portals, differing from Snap's system-service model
+- Flatpak is user-session focused (works without systemd) and integrates via portals, differing from Snap's system-service model -->
