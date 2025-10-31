@@ -42,7 +42,7 @@ Speakers:
 ---
 
 - They perform dependency resolution, manage metadata and caches, and apply updates
-  > Inspect dependencies using `apt`: `apt-cache depends vlc`
+  <!-- > Inspect dependencies using `apt`: `apt-cache depends vlc` -->
   <!-- NOTE: Should mention dpkg/rpm -i -->
 - They integrate with the OS packaging format (.deb / .rpm) and can influence system state (services, configs)
 - Important for security (timely patches), reproducibility, and disk/resource sharing
@@ -79,97 +79,7 @@ Speakers:
 
 - The system state will change immediately after you run the command.
 - "System state" includes installed packages, configuration files, services, libraries, and overall system behavior.
-
----
-
-Sometimes, you may see "not upgrading" packages...
-
-![alt text](image-3.png)
-
----
-
-Because of dependency resolution:
-
-Because package managers resolve dependency constraints before upgrading, some packages may be "held back" (not upgraded) to avoid breaking the system. Common reasons:
-
-- Conflicting dependencies: two packages require incompatible versions of the same library; upgrading one would break the other.
-- Version pinning or holds: a package or repository policy prevents newer versions from being installed.
-- New or replaced packages: the upgrade requires installing, removing, or replacing packages (e.g., file conflicts) and the safe/normal upgrade command doesn't allow those changes.
-
-How to inspect and resolve held / not-upgraded packages (APT):
-
-1. Refresh metadata and list upgradable packages:
-
-```bash
-sudo apt update
-apt list --upgradable
-```
-
-2. Check why a package is held or which versions are available:
-
-```bash
-apt policy <package>
-apt-cache depends <package>
-apt-cache rdepends <package>
-```
-
-3. Try the safe upgrade first (doesn't remove packages):
-
-```bash
-sudo apt upgrade
-```
-
-4. If a package is held because the upgrade needs removals/replacements, use a higher-permission upgrade that allows package replacement:
-
-```bash
-sudo apt full-upgrade    # alias for apt-get dist-upgrade; allows installing/removing packages
-```
-
-5. Fix broken dependencies and finalize:
-
-```bash
-sudo apt install -f     # attempt to fix broken deps
-sudo dpkg --configure -a
-```
-
-6. Check for holds and unhold if needed:
-
-```bash
-apt-mark showhold
-sudo apt-mark unhold <package>
-```
-
-7. If automated solvers struggle, use `aptitude`'s interactive resolver which often suggests acceptable dependency resolutions:
-
-```bash
-sudo aptitude
-```
-
-Equivalent checks for DNF (RPM ecosystems):
-
-- Update metadata and check updates:
-
-```bash
-sudo dnf check-update
-sudo dnf upgrade --refresh
-```
-
-- If DNF reports conflicts, you can allow replacements/removals or use `--allowerasing` to permit replacing packages that block the transaction:
-
-```bash
-sudo dnf upgrade --allowerasing
-```
-
-- To synchronize installed packages with repository versions (useful after switching repos):
-
-```bash
-sudo dnf distro-sync
-```
-
-Notes:
-
-- Snap and Flatpak are app bundles and are generally unaffected by system-level dependency resolution because they bundle runtimes or use sandboxed runtimes.
-- Always review proposed package removals before confirming a full-upgrade or using `--allowerasing` to avoid unintended removals.
+- After running an install/upgrade/remove command, the system will reflect those changes right away. It may require restarting services or logging out/in to fully apply changes.
 
 ---
 
@@ -195,7 +105,88 @@ Notes:
   - Inspect package: `dpkg-deb -I package.deb` or `rpm -qp --info package.rpm`
   - Check status: `dpkg -s <pkg>` or `rpm -q <pkg>` -->
 
-- Implications: DEB/RPM modify global filesystem and system state; upgrades can require config migration and service restarts
+---
+
+## APT (Debian / Ubuntu)
+
+- Frontends: apt, apt-get, apt-cache
+- Common commands:
+  - Update metadata: `sudo apt update`
+  - Search: `apt search <name>` or `apt-cache search <name>`
+  - Install: `sudo apt install <package>`
+  - Remove: `sudo apt remove <package>` (keep config) or `sudo apt purge <package>` (remove config)
+
+---
+
+#### Repository structure (.list file )
+
+```
+deb [repository_url] [distribution] [component]
+```
+
+- `distribution`: Specified the distribution name of the Debian (e.g., stable, buster, focal) or Ubuntu (e.g., focal, jammy)
+- `component`: Define the component which can be main, contrib, and non-free
+
+---
+
+#### Repository structure (.sources file )
+
+- More declarative. Being recommended recently.
+- Structure:
+
+```
+Types: deb
+URIs: [repository_url]
+Suites: [distribution: stable, buster, focal...]
+Architectures: amd64 | i386 | arm64 | all
+Components: [component: main, contrib, non-free]
+Signed-By: [path_to_GPG_key]
+```
+
+---
+
+- Repo files: `/etc/apt/sources.list` and `/etc/apt/sources.list.d/`
+
+![alt text](image-5.png)
+
+_Note: apt is preferring .sources files recently, but .list files are still widely used._
+
+---
+
+## DNF (Fedora / RHEL / CentOS / AlmaLinux)
+
+- Successor to yum on many RPM-based distros
+- Common commands:
+  - Update metadata: `sudo dnf makecache` or `sudo dnf check-update`
+  - Search: `dnf search <name>`
+  - Install: `sudo dnf install <package>`
+  - Remove: `sudo dnf remove <package>`
+- Compared to apt: https://docs.fedoraproject.org/en-US/quick-docs/dnf-vs-apt/
+
+---
+
+- Repo files: `/etc/yum.repos.d/*.repo`
+  ![alt text](image-4.png)
+
+<!-- ---
+
+## Adding repositories
+
+- Access newer versions, vendor packages, or 3rd-party software
+- Debian/Ubuntu:
+  - Add a PPA or a `.list` file in `/etc/apt/sources.list.d/`, import GPG key, then `sudo apt update`
+- RHEL/CentOS/AlmaLinux:
+  - Add a `.repo` file to `/etc/yum.repos.d/`, import GPG key, then `sudo dnf makecache`
+  - Use `dnf config-manager --add-repo <repo-url>`
+- Security: always verify repository GPG keys and prefer HTTPS where available -->
+
+<!-- ---
+
+Sometimes, you may see "not upgrading" packages...
+
+![alt text](image-3.png)
+
+--- -->
 
 ---
 
@@ -304,42 +295,6 @@ https://debian.pkgs.org/12/debian-main-arm64/neofetch_7.1.0-4_all.deb.html
 
 ---
 
-## APT (Debian / Ubuntu)
-
-- Frontends: apt, apt-get, apt-cache
-- Repo files: `/etc/apt/sources.list` and `/etc/apt/sources.list.d/`
-- Common commands:
-  - Update metadata: `sudo apt update`
-  - Search: `apt search <name>` or `apt-cache search <name>`
-  - Install: `sudo apt install <package>`
-  - Remove: `sudo apt remove <package>` (keep config) or `sudo apt purge <package>` (remove config)
-
----
-
-## DNF (Fedora / RHEL / CentOS / AlmaLinux)
-
-- Successor to yum on many RPM-based distros
-- Repo files: `/etc/yum.repos.d/*.repo`
-- Common commands:
-  - Update metadata: `sudo dnf makecache` or `sudo dnf check-update`
-  - Search: `dnf search <name>`
-  - Install: `sudo dnf install <package>`
-  - Remove: `sudo dnf remove <package>`
-
----
-
-## Adding repositories
-
-- Access newer versions, vendor packages, or 3rd-party software
-- Debian/Ubuntu:
-  - Add a PPA or a `.list` file in `/etc/apt/sources.list.d/`, import GPG key, then `sudo apt update`
-- RHEL/CentOS/AlmaLinux:
-  - Add a `.repo` file to `/etc/yum.repos.d/`, import GPG key, then `sudo dnf makecache`
-  - Use `dnf config-manager --add-repo <repo-url>`
-- Security: always verify repository GPG keys and prefer HTTPS where available
-
----
-
 ## Snap (Canonical)
 
 - Find: `snap find <name>`
@@ -377,37 +332,6 @@ https://snapcraft.io/docs/snap-howto
 Install a package that not exists in default repositories by adding a new repository
 
 https://www.sublimetext.com/docs/linux_repositories.html
-
----
-
-### Debian/Ubuntu
-
-#### Repository structure (.list file )
-
-```
-deb [repository_url] [distribution] [component]
-```
-
-- `distribution`: Specified the distribution name of the Debian (e.g., stable, buster, focal) or Ubuntu (e.g., focal, jammy)
-- `component`: Define the component which can be main, contrib, and non-free
-
----
-
-### Debian/Ubuntu
-
-#### Repository structure (.sources file )
-
-- More declarative. Being recommended recently.
-- Structure:
-
-```
-Types: deb
-URIs: [repository_url]
-Suites: [distribution: stable, buster, focal...]
-Architectures: amd64 | i386 | arm64 | all
-Components: [component: main, contrib, non-free]
-Signed-By: [path_to_GPG_key]
-```
 
 ---
 
